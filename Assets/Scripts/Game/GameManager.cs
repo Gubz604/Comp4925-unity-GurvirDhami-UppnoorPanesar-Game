@@ -1,6 +1,16 @@
 using System.Collections;
 using UnityEngine;
 using TMPro;
+using UnityEngine.Networking;
+using System.Text;
+
+[System.Serializable]
+public class ProgressRequest
+{
+    public int wave;
+    public int score;
+}
+
 
 public class GameManager : MonoBehaviour
 {
@@ -20,12 +30,19 @@ public class GameManager : MonoBehaviour
     public TMP_Text scoreText;
     public TMP_Text livesText;
     public TMP_Text statusText;
+    public TMP_Text bestText;
 
     private int _currentWave = 1;
     private int _score = 0;
     private int _lives;
     private int _enemiesRemaining;
     private bool _isGameOver;
+
+    private int _bestScore = 0;
+    private int _bestWave = 1;
+
+    private Vector3 _enemyGroupStartPos;
+
 
     private void Awake()
     {
@@ -39,16 +56,135 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        // Cache original enemy group position
+        if (enemyGroup != null)
+        {
+            _enemyGroupStartPos = enemyGroup.transform.position;
+        }
+
+        // Always start a fresh run
+        _currentWave = 1;
+        _score = 0;
         _lives = startingLives;
+        _isGameOver = false;
+
         UpdateUI();
+        StartCoroutine(LoadProgressAndStartWave());
+    }
+
+
+
+    private IEnumerator LoadProgressAndStartWave()
+    {
+        yield return LoadProgressFromServer();
         StartWave();
     }
+
+    private IEnumerator LoadProgressFromServer()
+    {
+        using (var request = UnityWebRequest.Get(ApiConfig.BASE_URL + "/api/progress"))
+        {
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogWarning("Failed to load progress: " + request.error);
+                yield break;
+            }
+
+            var json = request.downloadHandler.text;
+            Debug.Log("Progress GET: " + json);
+
+            ProgressResponse data = null;
+            try
+            {
+                data = JsonUtility.FromJson<ProgressResponse>(json);
+            }
+            catch
+            {
+                Debug.LogWarning("Could not parse progress JSON");
+            }
+
+            if (data != null)
+            {
+                // Store best values, but DO NOT change current wave/score
+                _bestScore = Mathf.Max(0, data.bestScore);
+                _bestWave = Mathf.Max(1, data.bestWave);
+
+                // Current run always starts fresh
+                _currentWave = 1;
+                _score = 0;
+
+                if (statusText)
+                {
+                    statusText.text = $"Best: {_bestScore} (Wave {_bestWave})";
+                }
+
+                UpdateUI();
+            }
+        }
+
+        // Small delay to allow message to be seen on screen
+        yield return new WaitForSeconds(1f);
+        if (statusText)
+        {
+            statusText.text = "";
+        }
+    }
+
+
+    private void SaveProgress()
+    {
+        StartCoroutine(SaveProgressCoroutine());
+    }
+
+    private IEnumerator SaveProgressCoroutine()
+    {
+        var payload = new ProgressRequest
+        {
+            wave = _currentWave,
+            score = _score
+        };
+
+        string json = JsonUtility.ToJson(payload);
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+
+        using (var request = new UnityWebRequest(ApiConfig.BASE_URL + "/api/progress", "POST"))
+        {
+            request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogWarning("Failed to save progress: " + request.error +
+                                 " :: " + request.downloadHandler.text);
+            }
+            else
+            {
+                Debug.Log("Progress saved OK");
+            }
+        }
+    }
+
 
     // ---------- Waves / Spawning ----------
 
     private void StartWave()
     {
-        statusText.text = $"Wave {_currentWave}";
+        // Reset enemy group’s position to the original start each wave
+        if (enemyGroup != null)
+        {
+            enemyGroup.transform.position = _enemyGroupStartPos;
+        }
+
+        if (statusText)
+        {
+            statusText.text = $"Wave {_currentWave}";
+        }
+
         ClearExistingEnemies();
         SpawnFormation();
     }
@@ -109,6 +245,8 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator HandleWaveCleared()
     {
+        SaveProgress();
+
         statusText.text = "Wave cleared!";
         yield return new WaitForSeconds(1.5f);
 
@@ -139,9 +277,14 @@ public class GameManager : MonoBehaviour
     private void GameOver()
     {
         _isGameOver = true;
-        statusText.text = "GAME OVER";
-        // TODO: restart or return to menu later
+        if (statusText)
+        {
+            statusText.text = "GAME OVER";
+        }
+
+        SaveProgress(); 
     }
+
 
     // ---------- UI ----------
 
@@ -150,5 +293,6 @@ public class GameManager : MonoBehaviour
         if (waveText) waveText.text = $"Wave: {_currentWave}";
         if (scoreText) scoreText.text = $"Score: {_score}";
         if (livesText) livesText.text = $"Lives: {_lives}";
+        if (bestText) bestText.text = $"Best: {_bestScore} (Wave {_bestWave})";
     }
 }

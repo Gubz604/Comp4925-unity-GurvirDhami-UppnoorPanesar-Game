@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; 
+using TMPro;
+using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class AuthUI : MonoBehaviour
 {
@@ -33,12 +35,20 @@ public class AuthUI : MonoBehaviour
             onSuccess: resp =>
             {
                 statusText.text = "Logged in as " + resp.username;
-                // TODO: load your main game scene here
-                Debug.Log("Login successful, proceed to main game scene.");
+                StartCoroutine(LoadGameDelayed());
+
+                // Load game scene
+                SceneManager.LoadScene("Game_Scene");
             },
             onError: err =>
             {
                 statusText.text = "Login failed: " + err;
             });
+    }
+
+    private IEnumerator LoadGameDelayed()
+    {
+        yield return new WaitForSeconds(0.5f);
+        SceneManager.LoadScene("Game_Scene");
     }
 }

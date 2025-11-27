@@ -4,6 +4,13 @@ using UnityEngine;
 using UnityEngine.Networking;
 
 [System.Serializable]
+public class ProgressResponse
+{
+    public int bestScore;
+    public int bestWave;
+}
+
+[System.Serializable]
 public class AuthRequest
 {
     public string username;
@@ -14,14 +21,6 @@ public class AuthRequest
 public class AuthResponse
 {
     public string username;
-}
-
-[System.Serializable]
-public class ProgressResponse
-{
-    public int highestWave;
-    public int totalScore;
-    public int totalKills;
 }
 
 public class AuthService : MonoBehaviour
@@ -147,8 +146,10 @@ public class AuthService : MonoBehaviour
     private IEnumerator LoadProgressRoutine(System.Action<ProgressResponse> onSuccess,
                                             System.Action<string> onError)
     {
-        using (var request = UnityWebRequest.Get(ApiConfig.BASE_URL + "/api/game/progress"))
+        using (var request = UnityWebRequest.Get(ApiConfig.BASE_URL + "/api/progress"))
         {
+            request.downloadHandler = new DownloadHandlerBuffer();
+
             yield return request.SendWebRequest();
 
             if (request.result != UnityWebRequest.Result.Success)
@@ -165,34 +166,33 @@ public class AuthService : MonoBehaviour
     }
 
     // -------- Progress: Save --------
-    public void SaveProgress(int highestWave, int totalScore, int totalKills,
+    // We only care about the wave this score happened on + the score itself.
+    public void SaveProgress(int wave, int score,
                              System.Action onSuccess,
                              System.Action<string> onError)
     {
-        StartCoroutine(SaveProgressRoutine(highestWave, totalScore, totalKills, onSuccess, onError));
+        StartCoroutine(SaveProgressRoutine(wave, score, onSuccess, onError));
     }
 
     [System.Serializable]
     private class SaveProgressRequest
     {
-        public int highestWave;
-        public int totalScore;
-        public int totalKills;
+        public int wave;
+        public int score;
     }
 
-    private IEnumerator SaveProgressRoutine(int highestWave, int totalScore, int totalKills,
+    private IEnumerator SaveProgressRoutine(int wave, int score,
                                             System.Action onSuccess,
                                             System.Action<string> onError)
     {
         var payload = new SaveProgressRequest
         {
-            highestWave = highestWave,
-            totalScore = totalScore,
-            totalKills = totalKills
+            wave = wave,
+            score = score
         };
         string json = JsonUtility.ToJson(payload);
 
-        using (var request = new UnityWebRequest(ApiConfig.BASE_URL + "/api/game/progress", "POST"))
+        using (var request = new UnityWebRequest(ApiConfig.BASE_URL + "/api/progress", "POST"))
         {
             byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
@@ -211,5 +211,4 @@ public class AuthService : MonoBehaviour
             }
         }
     }
-
 }
