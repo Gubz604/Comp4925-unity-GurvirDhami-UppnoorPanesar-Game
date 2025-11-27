@@ -32,9 +32,27 @@ public class AuthService : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    private IEnumerator TestHealth()
+    {
+        using (var request = UnityWebRequest.Get(ApiConfig.BASE_URL + "/api/health"))
+        {
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Health check failed: " + request.error);
+            }
+            else
+            {
+                Debug.Log("Health OK: " + request.downloadHandler.text);
+            }
+        }
+    }
+
     private void Start()
     {
         Debug.Log("AuthService is alive! BASE_URL = " + ApiConfig.BASE_URL);
+        StartCoroutine(TestHealth());
     }
 
 
