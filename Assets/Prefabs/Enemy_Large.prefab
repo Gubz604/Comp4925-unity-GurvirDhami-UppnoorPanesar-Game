@@ -184,3 +184,4 @@ MonoBehaviour:
   col: 0
   frameA: {fileID: 790234192, guid: 30289484c007b8d418878f8c85cf6040, type: 3}
   frameB: {fileID: 1411096988, guid: 30289484c007b8d418878f8c85cf6040, type: 3}
+  deathFlashPrefab: {fileID: 5435810297124508548, guid: c27e2906fdc7fb441ba5f4c12983f552, type: 3}

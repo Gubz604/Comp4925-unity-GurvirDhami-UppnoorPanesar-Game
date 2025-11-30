@@ -9,8 +9,11 @@ public class Enemy : MonoBehaviour
     public int col;
 
     [Header("Sprites")]
-    public Sprite frameA;   // first animation frame
-    public Sprite frameB;   // second animation frame
+    public Sprite frameA;
+    public Sprite frameB;
+
+    [Header("Death Effect")]
+    public GameObject deathFlashPrefab;    // full destruction sprite OR screen flash
 
     private int _currentHealth;
     private SpriteRenderer _spriteRenderer;
@@ -19,12 +22,9 @@ public class Enemy : MonoBehaviour
 
     private void Awake()
     {
-        // Try to find SpriteRenderer on this object or its children
         _spriteRenderer = GetComponent<SpriteRenderer>();
         if (_spriteRenderer == null)
-        {
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-        }
 
         if (_spriteRenderer == null)
         {
@@ -32,11 +32,8 @@ public class Enemy : MonoBehaviour
             return;
         }
 
-        // Default to frameA at start if set
         if (frameA != null)
-        {
             _spriteRenderer.sprite = frameA;
-        }
     }
 
     private void Start()
@@ -44,62 +41,76 @@ public class Enemy : MonoBehaviour
         _currentHealth = maxHealth;
     }
 
+    // -------------------------
+    //       TAKE DAMAGE
+    // -------------------------
     public void TakeHit(int damage)
     {
-        if (_isDead) return;              // already dead, ignore further hits
+        if (_isDead) return;
 
         _currentHealth -= damage;
+
         if (_currentHealth <= 0)
-        {
             Die();
-        }
     }
 
+    // -------------------------
+    //          DEATH
+    // -------------------------
     private void Die()
     {
         if (_isDead) return;
         _isDead = true;
 
-        // ✅ Only here do we tell GameManager about the kill
+        // Disable collisions immediately
+        Collider2D col = GetComponent<Collider2D>();
+        if (col != null) col.enabled = false;
+
+        // Hide original enemy sprite
+        if (_spriteRenderer != null)
+            _spriteRenderer.enabled = false;
+
+        // Spawn flash effect
+        if (deathFlashPrefab != null)
+        {
+            GameObject fx = Instantiate(deathFlashPrefab, transform.position, Quaternion.identity);
+            Destroy(fx, 0.35f);
+        }
+
+        // Notify manager (ONLY ONE AT A TIME BECAUSE OF QUEUE)
         GameManager.Instance.OnEnemyKilled(scoreValue, transform.position);
 
+        // Remove original enemy object
         Destroy(gameObject);
     }
 
+    // -------------------------
+    // COLLISIONS
+    // -------------------------
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Enemy collides with player ship
         if (other.CompareTag("Player"))
         {
-            PlayerShip player = other.GetComponent<PlayerShip>();
-            if (player != null)
-            {
-                player.TakeHit(1);
-            }
+            PlayerShip p = other.GetComponent<PlayerShip>();
+            if (p != null)
+                p.TakeHit(1);
 
-            // Usually the enemy dies when hitting the player
             Die();
         }
-        // Enemy gets hit by player bullet
         else if (other.CompareTag("PlayerBullet"))
         {
-            // Bullet is consumed
             Destroy(other.gameObject);
-
-            // Apply damage through the normal path
             TakeHit(1);
         }
     }
 
-    // Called by EnemyGroup every time the formation “steps”
+    // -------------------------
+    // WALK CYCLE ANIMATION
+    // -------------------------
     public void ToggleFrame()
     {
         if (frameA == null || frameB == null || _spriteRenderer == null)
-        {
-            // Helpful while debugging:
-            Debug.LogWarning("Enemy: Missing frameA/frameB/spriteRenderer", this);
             return;
-        }
 
         _useFrameA = !_useFrameA;
         _spriteRenderer.sprite = _useFrameA ? frameA : frameB;
