@@ -95,6 +95,16 @@ public class GameManager : MonoBehaviour
         StartCoroutine(LoadProgressAndStartWave());
     }
 
+    private void Update()
+    {
+        // Allow forcing game over with Q (only if game isn't already over)
+        if (!_isGameOver && Input.GetKeyDown(KeyCode.Q))
+        {
+            GameOver();
+        }
+    }
+
+
     // -------------------- Progress (Server) --------------------
 
     private IEnumerator LoadProgressAndStartWave()
