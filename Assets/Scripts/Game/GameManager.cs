@@ -1,8 +1,9 @@
-using System.Collections;
-using UnityEngine;
-using TMPro;
-using UnityEngine.Networking;
+ï»¿using System.Collections;
+using System.Collections.Generic;
 using System.Text;
+using TMPro;
+using UnityEngine;
+using UnityEngine.Networking;
 
 [System.Serializable]
 public class ProgressRequest
@@ -11,22 +12,25 @@ public class ProgressRequest
     public int score;
 }
 
-
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
+    // ---------- Gameplay ----------
     [Header("Gameplay")]
     public EnemyGroup enemyGroup;
+
+    // Different enemy prefabs for different rows
     public GameObject enemySmallPrefab;
     public GameObject enemyMediumPrefab;
     public GameObject enemyLargePrefab;
+
     public int rows = 5;
     public int columns = 11;
-    public float spacingX = 0.7f;
     public float spacingY = 0.55f;
     public int startingLives = 3;
 
+    // ---------- UI ----------
     [Header("UI")]
     public TMP_Text waveText;
     public TMP_Text scoreText;
@@ -34,17 +38,21 @@ public class GameManager : MonoBehaviour
     public TMP_Text statusText;
     public TMP_Text bestText;
 
+    // ---------- State ----------
     private int _currentWave = 1;
     private int _score = 0;
     private int _lives;
     private int _enemiesRemaining;
     private bool _isGameOver;
+    private bool _isWaveClearing;
 
+    // Best progress from server
     private int _bestScore = 0;
     private int _bestWave = 1;
 
     private Vector3 _enemyGroupStartPos;
 
+    // -------------------- Unity Lifecycle --------------------
 
     private void Awake()
     {
@@ -58,23 +66,22 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        // Cache original enemy group position
         if (enemyGroup != null)
         {
             _enemyGroupStartPos = enemyGroup.transform.position;
         }
 
-        // Always start a fresh run
         _currentWave = 1;
         _score = 0;
         _lives = startingLives;
         _isGameOver = false;
+        _isWaveClearing = false;
 
         UpdateUI();
         StartCoroutine(LoadProgressAndStartWave());
     }
 
-
+    // -------------------- Progress (Server) --------------------
 
     private IEnumerator LoadProgressAndStartWave()
     {
@@ -109,11 +116,9 @@ public class GameManager : MonoBehaviour
 
             if (data != null)
             {
-                // Store best values, but DO NOT change current wave/score
                 _bestScore = Mathf.Max(0, data.bestScore);
                 _bestWave = Mathf.Max(1, data.bestWave);
 
-                // Current run always starts fresh
                 _currentWave = 1;
                 _score = 0;
 
@@ -126,14 +131,12 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        // Small delay to allow message to be seen on screen
         yield return new WaitForSeconds(1f);
         if (statusText)
         {
             statusText.text = "";
         }
     }
-
 
     private void SaveProgress()
     {
@@ -171,8 +174,8 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // -------------------- Wave / Spawning --------------------
 
-    // ---------- Waves / Spawning ----------
     private IEnumerator ClearStatusAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -184,13 +187,14 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log($"[GameManager] StartWave() called. Wave = {_currentWave}");
 
+        _isWaveClearing = false;
+
         if (enemyGroup == null)
         {
-            Debug.LogError("[GameManager] enemyGroup is NULL! Did you forget to assign it in the Inspector?");
+            Debug.LogError("[GameManager] enemyGroup is NULL! Assign it in the Inspector.");
             return;
         }
 
-        // Reset enemy group’s position to the original start each wave
         enemyGroup.transform.position = _enemyGroupStartPos;
 
         if (statusText)
@@ -203,10 +207,9 @@ public class GameManager : MonoBehaviour
         SpawnFormation();
     }
 
-
     private void ClearExistingEnemies()
     {
-        var toDestroy = new System.Collections.Generic.List<GameObject>();
+        var toDestroy = new List<GameObject>();
         foreach (Transform child in enemyGroup.transform)
         {
             toDestroy.Add(child.gameObject);
@@ -221,7 +224,7 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log($"[GameManager] SpawnFormation() rows={rows}, columns={columns}");
 
-        _enemiesRemaining = rows * columns;
+        _enemiesRemaining = 0;
 
         Camera cam = Camera.main;
         if (cam == null)
@@ -250,11 +253,9 @@ public class GameManager : MonoBehaviour
             for (int col = 0; col < columns; col++)
             {
                 GameObject prefabToUse = GetEnemyPrefabForRow(row);
-
                 if (prefabToUse == null)
                 {
-                    Debug.LogError($"[GameManager] prefabToUse is NULL for row={row}. " +
-                                   $"Check enemySmallPrefab / enemyMediumPrefab / enemyLargePrefab in Inspector.");
+                    Debug.LogError($"[GameManager] prefabToUse is NULL for row={row}.");
                     continue;
                 }
 
@@ -266,7 +267,7 @@ public class GameManager : MonoBehaviour
                 GameObject enemyObj = Instantiate(prefabToUse, enemyGroup.transform);
                 enemyObj.transform.localPosition = localPos;
 
-                Debug.Log($"[GameManager] Spawned enemy '{prefabToUse.name}' at row={row}, col={col}, localPos={localPos}");
+                _enemiesRemaining++;
 
                 Enemy enemyComp = enemyObj.GetComponent<Enemy>();
                 if (enemyComp != null)
@@ -280,40 +281,33 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
-    }
 
+        Debug.Log($"[GameManager] Formation completed. _enemiesRemaining = {_enemiesRemaining}");
+    }
 
     private GameObject GetEnemyPrefabForRow(int row)
     {
-        GameObject result;
-
         if (row == 0)
-            result = enemyLargePrefab;
-        else if (row == 1 || row == 2)
-            result = enemyMediumPrefab;
-        else
-            result = enemySmallPrefab;
-
-        Debug.Log($"[GameManager] GetEnemyPrefabForRow({row}) -> {(result ? result.name : "NULL")}");
-
-        return result;
+            return enemyLargePrefab;
+        if (row == 1 || row == 2)
+            return enemyMediumPrefab;
+        return enemySmallPrefab;
     }
 
-
-
-
-    // ---------- Events from other scripts ----------
+    // -------------------- Events from other scripts --------------------
 
     public void OnEnemyKilled(int scoreValue, Vector3 deathPos)
     {
+        if (_isGameOver) return;
+
         _score += scoreValue;
-        _enemiesRemaining--;
+        _enemiesRemaining = Mathf.Max(0, _enemiesRemaining - 1);
 
-        // TODO: spawn explosion particle here later
+        Debug.Log($"[GameManager] Enemy killed. Remaining = {_enemiesRemaining}");
 
-        if (_enemiesRemaining <= 0)
+        if (_enemiesRemaining == 0 && !_isWaveClearing)
         {
-            // wave cleared
+            _isWaveClearing = true;
             StartCoroutine(HandleWaveCleared());
         }
 
@@ -324,11 +318,15 @@ public class GameManager : MonoBehaviour
     {
         SaveProgress();
 
-        statusText.text = "Wave cleared!";
+        if (statusText)
+            statusText.text = "Wave cleared!";
+
         yield return new WaitForSeconds(1.5f);
 
         _currentWave++;
-        statusText.text = "";
+        if (statusText)
+            statusText.text = "";
+
         StartWave();
     }
 
@@ -354,16 +352,14 @@ public class GameManager : MonoBehaviour
     private void GameOver()
     {
         _isGameOver = true;
-        if (statusText)
-        {
-            statusText.text = "GAME OVER";
-        }
 
-        SaveProgress(); 
+        if (statusText)
+            statusText.text = "GAME OVER";
+
+        SaveProgress();
     }
 
-
-    // ---------- UI ----------
+    // -------------------- UI --------------------
 
     private void UpdateUI()
     {

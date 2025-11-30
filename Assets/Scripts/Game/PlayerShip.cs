@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerShip : MonoBehaviour
@@ -16,7 +16,6 @@ public class PlayerShip : MonoBehaviour
 
     private void Start()
     {
-        // Compute horizontal bounds based on camera
         var cam = Camera.main;
         Vector3 left = cam.ViewportToWorldPoint(new Vector3(0, 0, 0));
         Vector3 right = cam.ViewportToWorldPoint(new Vector3(1, 0, 0));
@@ -32,7 +31,7 @@ public class PlayerShip : MonoBehaviour
 
     private void HandleMovement()
     {
-        float x = Input.GetAxisRaw("Horizontal"); // A/D or Left/Right
+        float x = Input.GetAxisRaw("Horizontal");
         Vector3 pos = transform.position;
         pos.x += x * moveSpeed * Time.deltaTime;
         pos.x = Mathf.Clamp(pos.x, _xMin, _xMax);
@@ -41,9 +40,11 @@ public class PlayerShip : MonoBehaviour
 
     private void HandleShooting()
     {
+        // Space or mouse button
         if (Input.GetKey(KeyCode.Space) || Input.GetButton("Fire1"))
         {
-            if (Time.time >= _nextFireTime)
+            // ✅ Only fire if cooldown passed AND no active player bullet
+            if (Time.time >= _nextFireTime && !PlayerBullet.ActiveBulletExists)
             {
                 _nextFireTime = Time.time + fireCooldown;
                 Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);

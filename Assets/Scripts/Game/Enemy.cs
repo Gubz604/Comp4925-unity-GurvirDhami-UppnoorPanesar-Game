@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
@@ -13,9 +13,9 @@ public class Enemy : MonoBehaviour
     public Sprite frameB;   // second animation frame
 
     private int _currentHealth;
-
     private SpriteRenderer _spriteRenderer;
     private bool _useFrameA = true;
+    private bool _isDead = false;
 
     private void Awake()
     {
@@ -46,6 +46,8 @@ public class Enemy : MonoBehaviour
 
     public void TakeHit(int damage)
     {
+        if (_isDead) return;              // already dead, ignore further hits
+
         _currentHealth -= damage;
         if (_currentHealth <= 0)
         {
@@ -55,12 +57,18 @@ public class Enemy : MonoBehaviour
 
     private void Die()
     {
+        if (_isDead) return;
+        _isDead = true;
+
+        // ✅ Only here do we tell GameManager about the kill
         GameManager.Instance.OnEnemyKilled(scoreValue, transform.position);
+
         Destroy(gameObject);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        // Enemy collides with player ship
         if (other.CompareTag("Player"))
         {
             PlayerShip player = other.GetComponent<PlayerShip>();
@@ -69,18 +77,21 @@ public class Enemy : MonoBehaviour
                 player.TakeHit(1);
             }
 
-            Destroy(gameObject);
+            // Usually the enemy dies when hitting the player
+            Die();
         }
-
-        if (other.CompareTag("PlayerBullet"))
+        // Enemy gets hit by player bullet
+        else if (other.CompareTag("PlayerBullet"))
         {
-            GameManager.Instance.OnEnemyKilled(scoreValue, transform.position);
+            // Bullet is consumed
             Destroy(other.gameObject);
-            Destroy(gameObject);
+
+            // Apply damage through the normal path
+            TakeHit(1);
         }
     }
 
-    // Called by EnemyGroup every time the formation �steps�
+    // Called by EnemyGroup every time the formation “steps”
     public void ToggleFrame()
     {
         if (frameA == null || frameB == null || _spriteRenderer == null)
