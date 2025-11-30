@@ -1,33 +1,66 @@
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyGroup : MonoBehaviour
 {
-    public float moveSpeed = 2f;
-    public float downStep = 0.5f;
-    public float viewportMargin = 0.05f;
-    public float edgeCooldown = 0.2f;   // time between valid edge hits
+    [Header("Movement")]
+    public float stepInterval = 1.0f;   // time between steps
+    public float horizontalStep = 0.3f; // distance left/right per step
+    public float downStep = 0.15f;      // drop when hitting edge
+    public float viewportMargin = 0.005f;
 
-    private int _direction = 1;         // 1 = right, -1 = left
-    private float _edgeTimer = 0f;
+    [Header("Shooting")]
+    public GameObject enemyBulletPrefab;
+    public float minShootInterval = 2f; // random delay between shots
+    public float maxShootInterval = 4f;
+
+    private float _moveTimer = 0f;
+    private int _direction = 1; // 1 = right, -1 = left
+
+    private float _shootTimer = 0f;
+    private float _nextShootTime = 0f;
+
+    private Camera _cam;
+
+    private void Start()
+    {
+        _cam = Camera.main;
+        ResetShootTimer();
+    }
 
     private void Update()
     {
         if (transform.childCount == 0) return;
 
-        _edgeTimer -= Time.deltaTime;
+        // --- Movement step timer ---
+        _moveTimer += Time.deltaTime;
+        if (_moveTimer >= stepInterval)
+        {
+            _moveTimer = 0f;
+            PerformStep();
+        }
 
-        // Move sideways
-        transform.position += Vector3.right * _direction * moveSpeed * Time.deltaTime;
+        // --- Shooting timer ---
+        _shootTimer += Time.deltaTime;
+        if (_shootTimer >= _nextShootTime)
+        {
+            TryShoot();
+            ResetShootTimer();
+        }
+    }
 
-        // Check if any child is near screen edge
-        Camera cam = Camera.main;
-        if (cam == null) return;
+    private void PerformStep()
+    {
+        // 1. Move horizontally
+        transform.position += Vector3.right * (_direction * horizontalStep);
 
+        // 2. Check for edge
         bool hitEdge = false;
 
         foreach (Transform child in transform)
         {
-            Vector3 viewportPos = cam.WorldToViewportPoint(child.position);
+            Vector3 viewportPos = _cam.WorldToViewportPoint(child.position);
+
             if (viewportPos.x < viewportMargin || viewportPos.x > 1f - viewportMargin)
             {
                 hitEdge = true;
@@ -35,20 +68,75 @@ public class EnemyGroup : MonoBehaviour
             }
         }
 
-        // Only react if we *just* hit an edge (cooldown over)
-        if (hitEdge && _edgeTimer <= 0f)
+        if (hitEdge)
         {
-            _direction *= -1;
             transform.position += Vector3.down * downStep;
-            _edgeTimer = edgeCooldown;  // prevent immediate repeated steps
+            _direction *= -1;
+            // stepInterval = Mathf.Max(0.15f, stepInterval * 0.95f); // optional speed-up
+        }
+
+        // 🔹 Flip all enemies' frames each step
+        ToggleAllEnemyFrames();
+    }
+
+    private void ToggleAllEnemyFrames()
+    {
+        foreach (Transform child in transform)
+        {
+            Enemy enemy = child.GetComponent<Enemy>();
+            if (enemy != null)
+            {
+                enemy.ToggleFrame();
+            }
         }
     }
 
-    // Called from GameManager when starting a new wave
-    public void ResetGroup(Vector3 worldPosition)
+    private void ResetShootTimer()
     {
-        transform.position = worldPosition;
-        _direction = 1;
-        _edgeTimer = 0f;
+        _shootTimer = 0f;
+        _nextShootTime = Random.Range(minShootInterval, maxShootInterval);
+    }
+
+    private void TryShoot()
+    {
+        if (enemyBulletPrefab == null) return;
+        if (EnemyBullet.ActiveCount > 0) return; // only one enemy bullet at a time
+        if (transform.childCount == 0) return;
+
+        List<Transform> eligibleShooters = GetEligibleShooters();
+        if (eligibleShooters.Count == 0) return;
+
+        Transform shooter = eligibleShooters[Random.Range(0, eligibleShooters.Count)];
+        Vector3 spawnPos = shooter.position + Vector3.down * 0.3f;
+
+        Instantiate(enemyBulletPrefab, spawnPos, Quaternion.identity);
+    }
+
+    private List<Transform> GetEligibleShooters()
+    {
+        Dictionary<int, Transform> bottomByColumn = new Dictionary<int, Transform>();
+
+        foreach (Transform child in transform)
+        {
+            Enemy enemyComp = child.GetComponent<Enemy>();
+            if (enemyComp == null) continue;
+
+            int col = enemyComp.col;
+
+            if (!bottomByColumn.TryGetValue(col, out Transform currentBottom))
+            {
+                bottomByColumn[col] = child;
+            }
+            else
+            {
+                Enemy currentEnemy = currentBottom.GetComponent<Enemy>();
+                if (enemyComp.row > currentEnemy.row)   // bigger row = lower on screen
+                {
+                    bottomByColumn[col] = child;
+                }
+            }
+        }
+
+        return new List<Transform>(bottomByColumn.Values);
     }
 }

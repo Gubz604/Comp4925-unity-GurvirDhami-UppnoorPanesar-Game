@@ -19,10 +19,10 @@ public class GameManager : MonoBehaviour
     [Header("Gameplay")]
     public EnemyGroup enemyGroup;
     public GameObject enemyPrefab;
-    public int rows = 4;
-    public int columns = 8;
-    public float spacingX = 0.8f;
-    public float spacingY = 0.6f;
+    public int rows = 5;
+    public int columns = 11;
+    public float spacingX = 0.7f;
+    public float spacingY = 0.55f;
     public int startingLives = 3;
 
     [Header("UI")]
@@ -171,6 +171,12 @@ public class GameManager : MonoBehaviour
 
 
     // ---------- Waves / Spawning ----------
+    private IEnumerator ClearStatusAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (statusText)
+            statusText.text = "";
+    }
 
     private void StartWave()
     {
@@ -183,6 +189,7 @@ public class GameManager : MonoBehaviour
         if (statusText)
         {
             statusText.text = $"Wave {_currentWave}";
+            StartCoroutine(ClearStatusAfterDelay(3f));
         }
 
         ClearExistingEnemies();
@@ -206,8 +213,25 @@ public class GameManager : MonoBehaviour
     {
         _enemiesRemaining = rows * columns;
 
-        // center formation around enemyGroup position
-        float startX = -(columns - 1) * spacingX * 0.5f;
+        Camera cam = Camera.main;
+        if (cam == null) return;
+
+
+        float leftViewportX = 0.1f;
+        float rightViewportX = 0.9f;
+
+        Vector3 leftWorld = cam.ViewportToWorldPoint(new Vector3(leftViewportX, 0.8f, cam.nearClipPlane));
+        Vector3 rightWorld = cam.ViewportToWorldPoint(new Vector3(rightViewportX, 0.8f, cam.nearClipPlane));
+
+        float totalWidth = rightWorld.x - leftWorld.x;
+        float spacingXLocal = totalWidth / (columns - 1);
+
+        spacingXLocal *= 0.9f;
+
+        // we still use a fixed vertical spacing
+        float spacingYLocal = spacingY;
+
+        float startX = -(columns - 1) * spacingXLocal * 0.5f;
         float startY = 0f;
 
         for (int row = 0; row < rows; row++)
@@ -215,15 +239,23 @@ public class GameManager : MonoBehaviour
             for (int col = 0; col < columns; col++)
             {
                 Vector3 localPos = new Vector3(
-                    startX + col * spacingX,
-                    startY - row * spacingY,
+                    startX + col * spacingXLocal,
+                    startY - row * spacingYLocal,
                     0f);
 
                 GameObject enemyObj = Instantiate(enemyPrefab, enemyGroup.transform);
                 enemyObj.transform.localPosition = localPos;
+
+                Enemy enemyComp = enemyObj.GetComponent<Enemy>();
+                if (enemyComp != null)
+                {
+                    enemyComp.row = row;
+                    enemyComp.col = col;
+                }
             }
         }
     }
+
 
     // ---------- Events from other scripts ----------
 
