@@ -4,6 +4,8 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
+
 
 [System.Serializable]
 public class ProgressRequest
@@ -38,6 +40,13 @@ public class GameManager : MonoBehaviour
     public TMP_Text statusText;
     public TMP_Text bestText;
 
+    // ---------- Game Over ----------
+    [Header("Game Over UI")]
+    [SerializeField] private GameObject gameOverPanel;
+    [SerializeField] private TextMeshProUGUI gameOverScoreText;
+    public bool IsGameOver => _isGameOver;
+
+
     // ---------- State ----------
     private int _currentWave = 1;
     private int _score = 0;
@@ -69,6 +78,11 @@ public class GameManager : MonoBehaviour
         if (enemyGroup != null)
         {
             _enemyGroupStartPos = enemyGroup.transform.position;
+        }
+
+        if (gameOverPanel)
+        {
+            gameOverPanel.SetActive(false);
         }
 
         _currentWave = 1;
@@ -349,15 +363,33 @@ public class GameManager : MonoBehaviour
         GameOver();
     }
 
-    private void GameOver()
+    public void GameOver()
     {
         _isGameOver = true;
 
-        if (statusText)
-            statusText.text = "GAME OVER";
+        if (gameOverPanel)
+        {
+            gameOverPanel.SetActive(true);
+        }
+        if (gameOverScoreText)
+        {
+            gameOverScoreText.text = $"Score: {_score}";
+        }
 
+        Time.timeScale = 0f;
         SaveProgress();
     }
+
+    public void OnPlayAgainButton()
+    {
+        // Unpause the game
+        Time.timeScale = 1f;
+
+        // Reload current scene
+        Scene current = SceneManager.GetActiveScene();
+        SceneManager.LoadScene(current.buildIndex);
+    }
+
 
     // -------------------- UI --------------------
 

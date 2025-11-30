@@ -113,17 +113,23 @@ public class PlayerShip : MonoBehaviour
             _rb.linearVelocity = Vector2.zero;
         }
 
-        // Hide the player and disable collisions
+        // Hide player & disable collisions
         if (_spriteRenderer != null) _spriteRenderer.enabled = false;
         if (_collider2D != null) _collider2D.enabled = false;
 
-        // Wait for the effect / delay
-        yield return new WaitForSeconds(respawnDelay);
+        // Wait in REAL time (ignores Time.timeScale)
+        yield return new WaitForSecondsRealtime(respawnDelay);
+
+        // If the game is over, don't respawn
+        if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
+        {
+            yield break;
+        }
 
         // Respawn at starting position
         transform.position = _startPosition;
 
-        // Re-enable visuals and collisions (if game isn't over you might later check GameManager)
+        // Re-enable visuals and collisions
         if (_spriteRenderer != null) _spriteRenderer.enabled = true;
         if (_collider2D != null) _collider2D.enabled = true;
 
