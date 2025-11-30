@@ -18,7 +18,9 @@ public class GameManager : MonoBehaviour
 
     [Header("Gameplay")]
     public EnemyGroup enemyGroup;
-    public GameObject enemyPrefab;
+    public GameObject enemySmallPrefab;
+    public GameObject enemyMediumPrefab;
+    public GameObject enemyLargePrefab;
     public int rows = 5;
     public int columns = 11;
     public float spacingX = 0.7f;
@@ -180,11 +182,16 @@ public class GameManager : MonoBehaviour
 
     private void StartWave()
     {
-        // Reset enemy group’s position to the original start each wave
-        if (enemyGroup != null)
+        Debug.Log($"[GameManager] StartWave() called. Wave = {_currentWave}");
+
+        if (enemyGroup == null)
         {
-            enemyGroup.transform.position = _enemyGroupStartPos;
+            Debug.LogError("[GameManager] enemyGroup is NULL! Did you forget to assign it in the Inspector?");
+            return;
         }
+
+        // Reset enemy group’s position to the original start each wave
+        enemyGroup.transform.position = _enemyGroupStartPos;
 
         if (statusText)
         {
@@ -195,6 +202,7 @@ public class GameManager : MonoBehaviour
         ClearExistingEnemies();
         SpawnFormation();
     }
+
 
     private void ClearExistingEnemies()
     {
@@ -211,11 +219,16 @@ public class GameManager : MonoBehaviour
 
     private void SpawnFormation()
     {
+        Debug.Log($"[GameManager] SpawnFormation() rows={rows}, columns={columns}");
+
         _enemiesRemaining = rows * columns;
 
         Camera cam = Camera.main;
-        if (cam == null) return;
-
+        if (cam == null)
+        {
+            Debug.LogError("[GameManager] Camera.main is NULL. Cannot spawn enemies.");
+            return;
+        }
 
         float leftViewportX = 0.1f;
         float rightViewportX = 0.9f;
@@ -225,10 +238,8 @@ public class GameManager : MonoBehaviour
 
         float totalWidth = rightWorld.x - leftWorld.x;
         float spacingXLocal = totalWidth / (columns - 1);
-
         spacingXLocal *= 0.9f;
 
-        // we still use a fixed vertical spacing
         float spacingYLocal = spacingY;
 
         float startX = -(columns - 1) * spacingXLocal * 0.5f;
@@ -238,13 +249,24 @@ public class GameManager : MonoBehaviour
         {
             for (int col = 0; col < columns; col++)
             {
+                GameObject prefabToUse = GetEnemyPrefabForRow(row);
+
+                if (prefabToUse == null)
+                {
+                    Debug.LogError($"[GameManager] prefabToUse is NULL for row={row}. " +
+                                   $"Check enemySmallPrefab / enemyMediumPrefab / enemyLargePrefab in Inspector.");
+                    continue;
+                }
+
                 Vector3 localPos = new Vector3(
                     startX + col * spacingXLocal,
                     startY - row * spacingYLocal,
                     0f);
 
-                GameObject enemyObj = Instantiate(enemyPrefab, enemyGroup.transform);
+                GameObject enemyObj = Instantiate(prefabToUse, enemyGroup.transform);
                 enemyObj.transform.localPosition = localPos;
+
+                Debug.Log($"[GameManager] Spawned enemy '{prefabToUse.name}' at row={row}, col={col}, localPos={localPos}");
 
                 Enemy enemyComp = enemyObj.GetComponent<Enemy>();
                 if (enemyComp != null)
@@ -252,9 +274,32 @@ public class GameManager : MonoBehaviour
                     enemyComp.row = row;
                     enemyComp.col = col;
                 }
+                else
+                {
+                    Debug.LogWarning($"[GameManager] Spawned enemy '{prefabToUse.name}' has no Enemy component.");
+                }
             }
         }
     }
+
+
+    private GameObject GetEnemyPrefabForRow(int row)
+    {
+        GameObject result;
+
+        if (row == 0)
+            result = enemyLargePrefab;
+        else if (row == 1 || row == 2)
+            result = enemyMediumPrefab;
+        else
+            result = enemySmallPrefab;
+
+        Debug.Log($"[GameManager] GetEnemyPrefabForRow({row}) -> {(result ? result.name : "NULL")}");
+
+        return result;
+    }
+
+
 
 
     // ---------- Events from other scripts ----------
