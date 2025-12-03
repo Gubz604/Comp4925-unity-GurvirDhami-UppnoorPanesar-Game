@@ -25,7 +25,7 @@ public class Barrier : MonoBehaviour
         currentHealth -= amount;
         if (currentHealth <= 0)
         {
-            Destroy(gameObject);   // barrier disappears completely
+            Destroy(gameObject);  
             return;
         }
 

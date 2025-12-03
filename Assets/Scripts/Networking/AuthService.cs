@@ -166,7 +166,6 @@ public class AuthService : MonoBehaviour
     }
 
     // -------- Progress: Save --------
-    // We only care about the wave this score happened on + the score itself.
     public void SaveProgress(int wave, int score,
                              System.Action onSuccess,
                              System.Action<string> onError)

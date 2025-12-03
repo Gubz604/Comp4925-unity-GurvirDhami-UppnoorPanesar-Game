@@ -47,7 +47,6 @@ public class PlayerShip : MonoBehaviour
 
     private void Start()
     {
-        // Remember the spawn position
         _startPosition = transform.position;
 
         var cam = Camera.main;
@@ -59,7 +58,6 @@ public class PlayerShip : MonoBehaviour
 
     private void Update()
     {
-        // Don't move / shoot while "dead"
         if (_isDead) return;
 
         HandleMovement();
@@ -80,7 +78,6 @@ public class PlayerShip : MonoBehaviour
         // Space or mouse button
         if (Input.GetKey(KeyCode.Space) || Input.GetButton("Fire1"))
         {
-            // Only fire if cooldown passed AND no active player bullet
             if (Time.time >= _nextFireTime && !PlayerBullet.ActiveBulletExists)
             {
                 _nextFireTime = Time.time + fireCooldown;
@@ -94,16 +91,13 @@ public class PlayerShip : MonoBehaviour
 
     public void TakeHit(int damage)
     {
-        // If we're already in the middle of a death/respawn, ignore extra hits
         if (_isDead) return;
 
-        // Tell GameManager to reduce lives, handle game over, etc.
         if (GameManager.Instance != null)
         {
             GameManager.Instance.OnPlayerHit(damage);
         }
 
-        // Play death effect + respawn
         StartCoroutine(DeathAndRespawnRoutine());
     }
 
@@ -111,35 +105,28 @@ public class PlayerShip : MonoBehaviour
     {
         _isDead = true;
 
-        // Spawn the destruction sprite prefab at current position
         if (deathEffectPrefab != null)
         {
             Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
         }
 
-        // Stop movement immediately
         if (_rb != null)
         {
             _rb.linearVelocity = Vector2.zero;
         }
 
-        // Hide player & disable collisions
         if (_spriteRenderer != null) _spriteRenderer.enabled = false;
         if (_collider2D != null) _collider2D.enabled = false;
 
-        // Wait in REAL time (ignores Time.timeScale)
         yield return new WaitForSecondsRealtime(respawnDelay);
 
-        // If the game is over, don't respawn
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
         {
             yield break;
         }
 
-        // Respawn at starting position
         transform.position = _startPosition;
 
-        // Re-enable visuals and collisions
         if (_spriteRenderer != null) _spriteRenderer.enabled = true;
         if (_collider2D != null) _collider2D.enabled = true;
 

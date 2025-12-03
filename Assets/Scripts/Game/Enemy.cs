@@ -13,7 +13,7 @@ public class Enemy : MonoBehaviour
     public Sprite frameB;
 
     [Header("Death Effect")]
-    public GameObject deathFlashPrefab;    // full destruction sprite OR screen flash
+    public GameObject deathFlashPrefab;    
 
     private int _currentHealth;
     private SpriteRenderer _spriteRenderer;
@@ -62,25 +62,20 @@ public class Enemy : MonoBehaviour
         if (_isDead) return;
         _isDead = true;
 
-        // Disable collisions immediately
         Collider2D col = GetComponent<Collider2D>();
         if (col != null) col.enabled = false;
 
-        // Hide original enemy sprite
         if (_spriteRenderer != null)
             _spriteRenderer.enabled = false;
 
-        // Spawn flash effect
         if (deathFlashPrefab != null)
         {
             GameObject fx = Instantiate(deathFlashPrefab, transform.position, Quaternion.identity);
             Destroy(fx, 0.35f);
         }
 
-        // Notify manager (ONLY ONE AT A TIME BECAUSE OF QUEUE)
         GameManager.Instance.OnEnemyKilled(scoreValue, transform.position);
 
-        // Remove original enemy object
         Destroy(gameObject);
     }
 

@@ -6,8 +6,8 @@ public class MusicManager : MonoBehaviour
     public static MusicManager Instance { get; private set; }
 
     [Header("Music Clips")]
-    [SerializeField] private AudioClip menuMusic;  // Home + Login
-    [SerializeField] private AudioClip gameMusic;  // Game scene
+    [SerializeField] private AudioClip menuMusic; 
+    [SerializeField] private AudioClip gameMusic; 
 
     [Header("Settings")]
     [Range(0f, 1f)]
@@ -17,7 +17,6 @@ public class MusicManager : MonoBehaviour
 
     private void Awake()
     {
-        // Singleton that survives scene loads
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -43,12 +42,10 @@ public class MusicManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Home + Login share the same music, and it should NOT restart
         if (scene.name == "Home_Screen" || scene.name == "Login_Scene")
         {
             PlayMenuMusic(preserveIfAlreadyPlaying: true);
         }
-        // Game_Scene music should restart every time the scene loads
         else if (scene.name == "Game_Scene")
         {
             PlayGameMusic();
@@ -63,7 +60,6 @@ public class MusicManager : MonoBehaviour
             _audioSource.clip == menuMusic &&
             _audioSource.isPlaying)
         {
-            // Already playing menu music → do nothing
             return;
         }
 
@@ -76,7 +72,6 @@ public class MusicManager : MonoBehaviour
     {
         if (gameMusic == null) return;
 
-        // Always restart at beginning when game starts / restarts
         _audioSource.clip = gameMusic;
         _audioSource.time = 0f;
         _audioSource.Play();

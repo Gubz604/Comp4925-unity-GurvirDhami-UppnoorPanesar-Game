@@ -7,8 +7,8 @@ public class ButtonParticleFX : MonoBehaviour,
     IPointerClickHandler
 {
     [SerializeField] private ParticleSystem stars;
-    [SerializeField] private float idleRateOverTime = 8f; // particles per second when highlighted
-    [SerializeField] private int clickBurstCount = 20;    // extra on click / enter
+    [SerializeField] private float idleRateOverTime = 8f; 
+    [SerializeField] private int clickBurstCount = 20;   
 
     private ParticleSystem.EmissionModule _emission;
 
@@ -20,7 +20,7 @@ public class ButtonParticleFX : MonoBehaviour,
         if (stars != null)
         {
             _emission = stars.emission;
-            _emission.rateOverTime = 0f; // start disabled
+            _emission.rateOverTime = 0f; 
         }
     }
 
@@ -60,7 +60,6 @@ public class ButtonParticleFX : MonoBehaviour,
         Pulse();
     }
 
-    // Called by keyboard (Enter) via LoginMenuController
     public void Pulse()
     {
         if (stars == null) return;

@@ -12,7 +12,6 @@ public class StartScreen : MonoBehaviour
 
     private void Start()
     {
-        // Just in case you came here from a paused game
         Time.timeScale = 1f;
 
         if (text == null)
@@ -37,7 +36,6 @@ public class StartScreen : MonoBehaviour
         }
         else
         {
-            // Fallback: load next scene in build index
             int currentIndex = SceneManager.GetActiveScene().buildIndex;
             SceneManager.LoadScene(currentIndex + 1);
         }

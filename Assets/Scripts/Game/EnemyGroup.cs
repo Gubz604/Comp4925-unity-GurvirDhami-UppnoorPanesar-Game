@@ -4,18 +4,18 @@ using UnityEngine;
 public class EnemyGroup : MonoBehaviour
 {
     [Header("Movement")]
-    public float stepInterval = 1.0f;   // time between steps
-    public float horizontalStep = 0.3f; // distance left/right per step
-    public float downStep = 0.15f;      // drop when hitting edge
+    public float stepInterval = 1.0f;   
+    public float horizontalStep = 0.3f; 
+    public float downStep = 0.15f;      
     public float viewportMargin = 0.005f;
 
     [Header("Shooting")]
     public GameObject enemyBulletPrefab;
-    public float minShootInterval = 2f; // random delay between shots
+    public float minShootInterval = 2f; 
     public float maxShootInterval = 4f;
 
     private float _moveTimer = 0f;
-    private int _direction = 1; // 1 = right, -1 = left
+    private int _direction = 1; 
 
     private float _shootTimer = 0f;
     private float _nextShootTime = 0f;
@@ -72,10 +72,8 @@ public class EnemyGroup : MonoBehaviour
         {
             transform.position += Vector3.down * downStep;
             _direction *= -1;
-            // stepInterval = Mathf.Max(0.15f, stepInterval * 0.95f); // optional speed-up
         }
 
-        // 🔹 Flip all enemies' frames each step
         ToggleAllEnemyFrames();
     }
 
@@ -100,7 +98,7 @@ public class EnemyGroup : MonoBehaviour
     private void TryShoot()
     {
         if (enemyBulletPrefab == null) return;
-        if (EnemyBullet.ActiveCount > 0) return; // only one enemy bullet at a time
+        if (EnemyBullet.ActiveCount > 0) return; 
         if (transform.childCount == 0) return;
 
         List<Transform> eligibleShooters = GetEligibleShooters();
@@ -130,7 +128,7 @@ public class EnemyGroup : MonoBehaviour
             else
             {
                 Enemy currentEnemy = currentBottom.GetComponent<Enemy>();
-                if (enemyComp.row > currentEnemy.row)   // bigger row = lower on screen
+                if (enemyComp.row > currentEnemy.row)   
                 {
                     bottomByColumn[col] = child;
                 }

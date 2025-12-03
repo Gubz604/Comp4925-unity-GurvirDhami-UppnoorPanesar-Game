@@ -108,7 +108,7 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        // Allow forcing game over with Q (only if game isn't already over)
+        // Allow forcing game over with Q 
         if (!_isGameOver && Input.GetKeyDown(KeyCode.Q))
         {
             GameOver();

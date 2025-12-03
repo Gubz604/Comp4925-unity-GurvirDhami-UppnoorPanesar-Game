@@ -3,7 +3,7 @@ using UnityEngine.EventSystems;
 
 public class ButtonParticlePulse : MonoBehaviour, IPointerClickHandler
 {
-    [SerializeField] private ParticleSystem stars;  // assign the child particle system
+    [SerializeField] private ParticleSystem stars; 
 
     // Called by mouse click / touch
     public void OnPointerClick(PointerEventData eventData)
@@ -16,6 +16,6 @@ public class ButtonParticlePulse : MonoBehaviour, IPointerClickHandler
         if (stars == null) return;
 
         // Emit an extra burst of particles
-        stars.Emit(20);   // tweak this number to taste
+        stars.Emit(20);  
     }
 }

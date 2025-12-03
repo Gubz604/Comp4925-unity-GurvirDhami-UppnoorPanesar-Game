@@ -9,7 +9,7 @@ public class EnemyBullet : MonoBehaviour
     [Header("Animation Frames")]
     public Sprite frameA;
     public Sprite frameB;
-    public float frameInterval = 0.5f; // change every half-second
+    public float frameInterval = 0.5f; 
 
     private SpriteRenderer sr;
     private float nextFrameTime;
@@ -30,7 +30,7 @@ public class EnemyBullet : MonoBehaviour
 
     private void OnDestroy()
     {
-        ActiveCount = Mathf.Max(ActiveCount - 1, 0); // prevents negative errors
+        ActiveCount = Mathf.Max(ActiveCount - 1, 0); 
     }
     // ------------------------------------------------------------
 

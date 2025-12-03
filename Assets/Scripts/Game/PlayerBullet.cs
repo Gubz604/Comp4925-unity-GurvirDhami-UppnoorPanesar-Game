@@ -9,13 +9,11 @@ public class PlayerBullet : MonoBehaviour
 
     private void OnEnable()
     {
-        // Bullet has spawned → mark it active
         ActiveBulletExists = true;
     }
 
     private void OnDisable()
     {
-        // Bullet destroyed (any reason) → mark inactive
         ActiveBulletExists = false;
     }
 
@@ -40,7 +38,7 @@ public class PlayerBullet : MonoBehaviour
                 enemy.TakeHit(1);
             }
 
-            Destroy(gameObject); // This will deactivate the bullet, setting ActiveBulletExists = false
+            Destroy(gameObject); 
         }
 
         // Hit barrier
@@ -58,6 +56,6 @@ public class PlayerBullet : MonoBehaviour
 
     private void OnBecameInvisible()
     {
-        Destroy(gameObject); // Also resets ActiveBulletExists when disabled
+        Destroy(gameObject); 
     }
 }
