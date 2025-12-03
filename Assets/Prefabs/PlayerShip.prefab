@@ -215,3 +215,6 @@ MonoBehaviour:
   bulletPrefab: {fileID: 9061362836552576314, guid: 5745d5d361b8e944c85d68b18e8d0576, type: 3}
   firePoint: {fileID: 8974954738753308305}
   fireCooldown: 0.25
+  deathEffectPrefab: {fileID: 8531174058056669883, guid: 3c375f4625771c84cb3aaafcfd2c41c2, type: 3}
+  respawnDelay: 0.5
+  shootClip: {fileID: 8300000, guid: bb1a580cbe36fce4a9e82b9b5ffb259a, type: 3}

@@ -44,6 +44,13 @@ public class GameManager : MonoBehaviour
     [Header("Game Over UI")]
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private TextMeshProUGUI gameOverScoreText;
+
+    // ---------- Audio ----------
+    [Header("Audio")]
+    [SerializeField] private AudioClip enemyDeathClip;
+    private AudioSource audioSource;
+
+
     public bool IsGameOver => _isGameOver;
 
 
@@ -84,6 +91,10 @@ public class GameManager : MonoBehaviour
         {
             gameOverPanel.SetActive(false);
         }
+
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
 
         _currentWave = 1;
         _score = 0;
@@ -324,10 +335,11 @@ public class GameManager : MonoBehaviour
     {
         if (_isGameOver) return;
 
+        if (enemyDeathClip != null && audioSource != null)
+            audioSource.PlayOneShot(enemyDeathClip);
+
         _score += scoreValue;
         _enemiesRemaining = Mathf.Max(0, _enemiesRemaining - 1);
-
-        Debug.Log($"[GameManager] Enemy killed. Remaining = {_enemiesRemaining}");
 
         if (_enemiesRemaining == 0 && !_isWaveClearing)
         {

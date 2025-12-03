@@ -14,8 +14,11 @@ public class PlayerShip : MonoBehaviour
     public float fireCooldown = 0.25f;
 
     [Header("Death / Respawn")]
-    public GameObject deathEffectPrefab;   // <- assign your PlayerDeathEffect prefab here
-    public float respawnDelay = 0.5f;      // how long before the ship respawns
+    public GameObject deathEffectPrefab;   
+    public float respawnDelay = 0.5f;
+
+    [Header("Audio")]
+    [SerializeField] private AudioClip shootClip;
 
     private float _nextFireTime;
     private float _xMin;
@@ -28,6 +31,8 @@ public class PlayerShip : MonoBehaviour
     private Collider2D _collider2D;
     private Rigidbody2D _rb;
 
+    private AudioSource audioSource;
+
     private void Awake()
     {
         _spriteRenderer = GetComponent<SpriteRenderer>();
@@ -36,6 +41,8 @@ public class PlayerShip : MonoBehaviour
 
         _collider2D = GetComponent<Collider2D>();
         _rb = GetComponent<Rigidbody2D>();
+
+        audioSource = GetComponent<AudioSource>();
     }
 
     private void Start()
@@ -78,6 +85,9 @@ public class PlayerShip : MonoBehaviour
             {
                 _nextFireTime = Time.time + fireCooldown;
                 Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
+
+                if (shootClip != null && audioSource != null)
+                    audioSource.PlayOneShot(shootClip);
             }
         }
     }
